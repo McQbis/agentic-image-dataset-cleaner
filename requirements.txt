@@ -1,0 +1,9 @@
+pydantic>=2.6
+groq>=0.11
+opencv-python-headless>=4.9
+pillow>=10.0
+imagehash>=4.3
+numpy>=1.26
+langgraph>=0.2
+dotenv
+pytest>=7.4
