@@ -6,3 +6,4 @@ imagehash>=4.3
 numpy>=1.26
 langgraph>=0.2
 dotenv
+pytest>=7.4
