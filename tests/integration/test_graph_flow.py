@@ -10,43 +10,14 @@ which is critical for human-in-the-loop execution.
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
-from PIL import Image
 
 from core.orchestration.graph import build_graph
 from core.schemas import RunStatus
 
+from .conftest import base_pipeline_config
 from .fakes import FakeDeps, make_fake_criteria
-
-
-@pytest.fixture
-def tiny_dataset(tmp_path) -> str:
-    """Create a small deterministic synthetic dataset."""
-    dataset_dir = tmp_path / "dataset"
-    dataset_dir.mkdir()
-
-    rng = np.random.default_rng(42)
-
-    for index in range(6):
-        array = (rng.random((80, 80, 3)) * 255).astype("uint8")
-        Image.fromarray(array).save(dataset_dir / f"image_{index}.jpg")
-
-    return str(dataset_dir)
-
-
-def _base_config(dataset_dir: str) -> dict:
-    """Build the default pipeline configuration used by integration tests."""
-    return {
-        "dataset_dir": dataset_dir,
-        "n_worst_to_vlm": 3,
-        "max_rounds": 5,
-        "report_batch_size": 10,
-        "text_model": "x",
-        "vision_model": "y",
-    }
 
 
 def test_single_round_without_continuation(tiny_dataset):
@@ -66,7 +37,7 @@ def test_single_round_without_continuation(tiny_dataset):
     result = app.invoke(
         {
             "run_id": "t1",
-            "config": _base_config(tiny_dataset),
+            "config": base_pipeline_config(tiny_dataset),
             "status": "pending",
         },
         config=thread_config,
@@ -104,7 +75,7 @@ def test_two_rounds_with_interrupt_and_resume(tiny_dataset):
     result = app.invoke(
         {
             "run_id": "t2",
-            "config": _base_config(tiny_dataset),
+            "config": base_pipeline_config(tiny_dataset),
             "status": "pending",
         },
         config=thread_config,
@@ -157,7 +128,7 @@ def test_user_declines_next_round(tiny_dataset):
     app.invoke(
         {
             "run_id": "t3",
-            "config": _base_config(tiny_dataset),
+            "config": base_pipeline_config(tiny_dataset),
             "status": "pending",
         },
         config=thread_config,
@@ -189,7 +160,7 @@ def test_pipeline_respects_max_rounds(tiny_dataset):
         }
     }
 
-    config = _base_config(tiny_dataset)
+    config = base_pipeline_config(tiny_dataset)
     config["max_rounds"] = 2
 
     result = app.invoke(
