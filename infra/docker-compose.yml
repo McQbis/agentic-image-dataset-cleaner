@@ -1,0 +1,63 @@
+# Local dev stack for running the pipeline behind Celery + Redis.
+#
+# Run from the repo root:
+#   docker compose -f infra/docker-compose.yml --env-file .env up --build
+#
+# This does NOT run the graph itself -- it only starts the broker/backend
+# (Redis) and the worker(s) that execute the Celery tasks in infra/tasks.py.
+# You still trigger a pipeline run separately, e.g. with `run_distributed.py`
+# (or, later, a FastAPI endpoint) from your own machine or another service.
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      TEXT_MODEL: ${TEXT_MODEL}
+      VLM_MODEL: ${VLM_MODEL}
+      TEXT_MODEL_REASONING_EFFORT: ${TEXT_MODEL_REASONING_EFFORT}
+      VISION_MODEL_REASONING_EFFORT: ${VISION_MODEL_REASONING_EFFORT}
+    # The worker only ever receives a *path string* (see infra/tasks.py),
+    # never the image bytes themselves -- run_distributed.py on the host
+    # sends e.g. "datasets/dogs_raw" and the worker opens that same relative
+    # path itself. Without this mount the container has no "datasets/" at
+    # all and every analyze/VLM task fails with a file-not-found error.
+    #
+    # Mounted read-only: the worker only reads images. If you add a cleanup
+    # stage that materializes a clean dataset to disk, give that its own
+    # writable mount instead of loosening this one.
+    volumes:
+      - ../datasets:/app/datasets:ro
+    # Bump this in a real deployment to evaluate more samples in parallel.
+    deploy:
+      replicas: 1
+
+  # Optional: web UI at http://localhost:5555 for inspecting the queue.
+  flower:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+    command: ["celery", "-A", "infra.celery_app", "flower", "--port=5555"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "5555:5555"

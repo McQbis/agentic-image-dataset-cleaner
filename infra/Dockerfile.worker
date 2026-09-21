@@ -1,0 +1,22 @@
+# Minimal image for a Celery worker running the pipeline's tasks.
+#
+# Built from the repo root, e.g.:
+#   docker build -f infra/Dockerfile.worker -t adc-worker .
+#
+# `docker-compose.yml` in this folder does this automatically.
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt ./requirements.txt
+COPY infra/requirements-infra.txt ./infra/requirements-infra.txt
+
+RUN pip install --no-cache-dir \
+    -r requirements.txt \
+    -r infra/requirements-infra.txt
+
+COPY core ./core
+COPY infra ./infra
+
+CMD ["celery", "-A", "infra.celery_app", "worker", "--loglevel=info"]
