@@ -1,0 +1,15 @@
+# Extra dependencies needed only to run the pipeline behind Celery + Redis.
+#
+# The base `requirements.txt` at the repo root is intentionally kept free of
+# these, since the pipeline runs perfectly fine locally (`run_locally.py`)
+# without any of this. Install this file only if you're running
+# `run_distributed.py` and/or a Celery worker:
+#
+#   pip install -r requirements.txt -r infra/requirements-infra.txt
+
+celery[redis]>=5.4
+redis>=5.0
+
+# Optional but handy for a portfolio demo: a web UI for inspecting the
+# Celery queue (tasks, workers, retries) at http://localhost:5555.
+flower>=2.0

@@ -44,7 +44,7 @@ if not VLM_MODEL:
 
 # Local runner configuration.
 DATASET_DIR = "datasets/dogs_raw"
-N_WORST_TO_VLM = 20
+N_WORST_TO_VLM = 1
 MAX_ROUNDS = 3
 THREAD_ID = "local-pipeline"
 

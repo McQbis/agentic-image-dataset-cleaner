@@ -338,6 +338,7 @@ def node_review_decision(
             "round_number": state["round_number"],
             "next_round_proposal": report.next_round_proposal,
             "overall_summary": report.overall_summary,
+            "report": last_round["report"],
         }
     )
 
