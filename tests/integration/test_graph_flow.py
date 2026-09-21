@@ -121,6 +121,14 @@ def test_two_rounds_with_interrupt_and_resume(tiny_dataset):
     assert interrupt_payload["reason"] == "next_round_approval"
     assert interrupt_payload["round_number"] == 1
 
+    # Regression test: the interrupt payload must carry the full report so
+    # that callers (e.g. run_locally.py) can show sample paths to the human
+    # reviewer before they decide whether to approve the next round.
+    assert "report" in interrupt_payload
+    report_items = interrupt_payload["report"]["items"]
+    assert len(report_items) > 0
+    assert all(item["path"] for item in report_items)
+
     result = app.invoke(
         Command(resume=True),
         config=thread_config,
